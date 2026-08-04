@@ -32,6 +32,8 @@ def validate_decode_inputs(
         raise ValueError("KV cache must contain at least one token")
     if query.shape[1] % key_cache.shape[1]:
         raise ValueError("query_heads must be divisible by kv_heads")
+    if query.shape[1] != 2 * key_cache.shape[1]:
+        raise ValueError("this Qwen prototype requires two query heads per KV head")
     if query.dtype not in (torch.float16, torch.bfloat16):
         raise TypeError("only float16 and bfloat16 are supported")
     if query.dtype != key_cache.dtype or query.dtype != value_cache.dtype:

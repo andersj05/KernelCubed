@@ -19,6 +19,12 @@ class DecodeAttentionContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "divisible"):
             validate_decode_inputs(query, cache, cache)
 
+    def test_rejects_non_qwen_group_size_before_build(self) -> None:
+        query = torch.empty(1, 24, 128, dtype=torch.float16)
+        cache = torch.empty(8, 8, 128, dtype=torch.float16)
+        with self.assertRaisesRegex(ValueError, "two query heads"):
+            validate_decode_inputs(query, cache, cache)
+
 
 @unittest.skipUnless(torch.cuda.is_available(), "CUDA is required")
 class DecodeAttentionCudaTests(unittest.TestCase):

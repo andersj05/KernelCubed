@@ -109,7 +109,9 @@ unmodified Qwen3-0.6B decode geometry:
 - contiguous NHD KV-cache layout
 - BF16 or FP16 inputs with FP32 dot products, softmax state, and accumulation
 - warp-per-query-head execution through 256 cached tokens
-- split-KV execution with online-softmax state merging for longer contexts
+- paired-head split-KV execution for longer contexts; each warp maintains two
+  independent softmax states while sharing every K/V cache load
+- 128-token split partitions, capped at 64, to retain GPU occupancy
 
 The shared model environment contains CUDA 13.0 headers and a CUDA 13.3
 compiler. Install the pinned 13.0 compiler into an isolated, ignored project
@@ -137,6 +139,14 @@ Against SDPA, its measured speedups were 1.97x at 128 tokens, 1.39x at 256,
 1.19x at 512, 1.00x at 2,048, 1.19x at 8,192, and 0.99x at 32,768. It was
 competitive with but did not consistently beat FlashInfer. These are isolated
 attention latencies, not end-to-end model tokens per second.
+
+The paired-GQA checkpoint is recorded in
+`results/decode-gqa2-rtx4070-cu130.json`. In that 100-sample trial, the custom
+kernel measured 1.60x, 1.26x, 1.15x, 1.49x, 1.20x, and 1.19x versus SDPA at
+128, 256, 512, 2,048, 8,192, and 32,768 tokens respectively. At 32,768 tokens,
+paired loading measured 0.674 ms versus 0.701 ms for the initial custom
+prototype and 0.765 ms for FlashInfer. Laptop GPU scheduling and clocking still
+produce run-to-run variance, so compare saved raw percentile data as well.
 
 ## SWE-bench Mini
 

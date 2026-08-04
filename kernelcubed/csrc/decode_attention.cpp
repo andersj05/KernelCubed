@@ -40,6 +40,9 @@ torch::Tensor qwen_decode_attention(
       query.size(1) % key_cache.size(1) == 0,
       "query_heads must be divisible by kv_heads");
   TORCH_CHECK(
+      query.size(1) == 2 * key_cache.size(1),
+      "this Qwen prototype requires two query heads per KV head");
+  TORCH_CHECK(
       query.scalar_type() == key_cache.scalar_type(),
       "query and key cache dtypes must match");
   TORCH_CHECK(
