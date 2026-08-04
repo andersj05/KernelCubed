@@ -100,6 +100,99 @@ environment metadata, numerical comparisons, and the explicit FlashAttention
 skip reason. Treat it as a machine baseline rather than a universal backend
 ranking.
 
+## Custom CUDA decode-attention prototype
+
+`kernelcubed-cuda` is an inference-only C++/CUDA backend specialized for the
+unmodified Qwen3-0.6B decode geometry:
+
+- one query token, 16 query heads, 8 KV heads, and head dimension 128
+- contiguous NHD KV-cache layout
+- BF16 or FP16 inputs with FP32 dot products, softmax state, and accumulation
+- warp-per-query-head execution through 256 cached tokens
+- split-KV execution with online-softmax state merging for longer contexts
+
+The shared model environment contains CUDA 13.0 headers and a CUDA 13.3
+compiler. Install the pinned 13.0 compiler into an isolated, ignored project
+directory so the extension does not modify that environment:
+
+```bash
+/home/base/ai/qwen3-0.6b/.venv/bin/python -m pip install \
+  --target .toolchains/cuda130 --no-deps \
+  -r requirements-cuda-build.txt
+```
+
+The first use JIT-compiles the extension for Ada compute capability 8.9. Run
+the focused comparison with:
+
+```bash
+/home/base/ai/qwen3-0.6b/.venv/bin/python -m kernelcubed.benchmark \
+  --phase decode \
+  --backends sdpa,flashinfer,kernelcubed-cuda \
+  --decode-lengths 128,256,512,2048,8192,32768 \
+  --warmup 20 --repeats 100
+```
+
+`results/decode-prototype-rtx4070-cu130.json` records the tuned prototype.
+Against SDPA, its measured speedups were 1.97x at 128 tokens, 1.39x at 256,
+1.19x at 512, 1.00x at 2,048, 1.19x at 8,192, and 0.99x at 32,768. It was
+competitive with but did not consistently beat FlashInfer. These are isolated
+attention latencies, not end-to-end model tokens per second.
+
+## SWE-bench Mini
+
+The SWE workflow uses a deterministic 12-task subset of the official
+[SWE-bench Lite oracle-retrieval dataset](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Lite_oracle).
+It favors short prompts, one-file changes, small gold patches, and at most three
+fail-to-pass tests. Gold patch statistics are used only to select the easy
+subset; solution patches are never written into model prompts.
+The downloader strips the Oracle dataset's bundled example output so small
+models cannot inflate results by copying its demonstration patch.
+
+Download the suite:
+
+```bash
+/home/base/ai/qwen3-0.6b/.venv/bin/python -m kernelcubed.swebench download
+```
+
+Run a quick three-task generation benchmark:
+
+```bash
+/home/base/ai/qwen3-0.6b/.venv/bin/python -m kernelcubed.swebench run \
+  --limit 3 \
+  --max-tokens 256 \
+  --output-dir results/swebench-mini/qwen3-0.6b-smoke
+```
+
+Remove --limit and use the default 512 output tokens for the complete mini
+suite. Each run produces:
+
+- predictions.jsonl in the format expected by the official harness
+- generations.jsonl with raw output and per-request token/timing information
+- metrics.json with aggregate prompt tokens, output tokens, tokens per second,
+  structurally complete diff rate, truncation count, backend, model, GPU, and
+  run settings
+
+For an attention-kernel comparison, keep the task manifest, seed, model,
+max-model-len, max-tokens, batch size, and thinking setting unchanged. Change
+only the runtime/kernel selection, using --attention-backend when it maps to a
+vLLM backend.
+
+Official resolved-rate scoring applies each generated patch and runs repository
+tests in Docker. Install the
+[official SWE-bench harness](https://www.swebench.com/SWE-bench/guides/quickstart/)
+and run:
+
+```bash
+python -m pip install swebench
+python -m kernelcubed.swebench evaluate \
+  --predictions results/swebench-mini/qwen3-0.6b-baseline/predictions.jsonl
+```
+
+The Docker daemon must be running. Image downloads can consume substantial disk
+space, so the wrapper defaults to one worker and environment-level caching.
+If Docker reports a socket permission error, add the current user to the
+`docker` group and start a new login session before running the evaluator.
+
 ## Tests
 
 The unit tests run on CPU and do not require optional GPU backends:

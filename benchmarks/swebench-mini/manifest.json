@@ -1,0 +1,198 @@
+{
+  "format_version": 1,
+  "retrieval": "official oracle retrieval; pre-change files; demo removed",
+  "oracle_dataset": "princeton-nlp/SWE-bench_Lite_oracle",
+  "evaluation_dataset": "SWE-bench/SWE-bench_Lite",
+  "dataset_revision": "6fc5a85316392edbd1c2779120eeea362c535c82",
+  "split": "test",
+  "selection": {
+    "count": 12,
+    "max_prompt_chars": 24000,
+    "max_changed_lines": 40,
+    "max_files": 1,
+    "max_fail_to_pass": 3,
+    "max_per_repo": 2
+  },
+  "tasks": [
+    {
+      "instance_id": "django__django-13230",
+      "repo": "django/django",
+      "base_commit": "184a6eebb0ef56d5f1b1315a8e666830e37f3f81",
+      "version": "3.2",
+      "prompt_chars": 11960,
+      "estimated_prompt_tokens": 2990,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 1,
+        "added_lines": 1,
+        "removed_lines": 0,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "django__django-11179",
+      "repo": "django/django",
+      "base_commit": "19fc6376ce67d01ca37a91ef2f55ef769f50513a",
+      "version": "3.0",
+      "prompt_chars": 17609,
+      "estimated_prompt_tokens": 4403,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 1,
+        "added_lines": 1,
+        "removed_lines": 0,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "pylint-dev__pylint-7993",
+      "repo": "pylint-dev/pylint",
+      "base_commit": "e90702074e68e20dc8e5df5013ee3ecf22139c3e",
+      "version": "2.15",
+      "prompt_chars": 22017,
+      "estimated_prompt_tokens": 5505,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 2,
+        "added_lines": 1,
+        "removed_lines": 1,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "sympy__sympy-24213",
+      "repo": "sympy/sympy",
+      "base_commit": "e8c22f6eac7314be8d92590bfff92ced79ee03e2",
+      "version": "1.12",
+      "prompt_chars": 22069,
+      "estimated_prompt_tokens": 5518,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 2,
+        "added_lines": 1,
+        "removed_lines": 1,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "astropy__astropy-12907",
+      "repo": "astropy/astropy",
+      "base_commit": "d16bfe05a744909de4b27f5875fe0d4ed41ce607",
+      "version": "4.3",
+      "prompt_chars": 17305,
+      "estimated_prompt_tokens": 4327,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 2,
+        "added_lines": 1,
+        "removed_lines": 1,
+        "fail_to_pass": 2
+      }
+    },
+    {
+      "instance_id": "sympy__sympy-12171",
+      "repo": "sympy/sympy",
+      "base_commit": "ca6ef27272be31c9dc3753ede9232c39df9a75d8",
+      "version": "1.0",
+      "prompt_chars": 15991,
+      "estimated_prompt_tokens": 3998,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 3,
+        "added_lines": 3,
+        "removed_lines": 0,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7432",
+      "repo": "pytest-dev/pytest",
+      "base_commit": "e6e300e729dd33956e5448d8be9a0b1540b4e53a",
+      "version": "5.4",
+      "prompt_chars": 18485,
+      "estimated_prompt_tokens": 4622,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 3,
+        "added_lines": 2,
+        "removed_lines": 1,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "pylint-dev__pylint-6506",
+      "repo": "pylint-dev/pylint",
+      "base_commit": "0a4204fd7555cfedd43f43017c94d24ef48244a5",
+      "version": "2.14",
+      "prompt_chars": 13163,
+      "estimated_prompt_tokens": 3291,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 3,
+        "added_lines": 1,
+        "removed_lines": 2,
+        "fail_to_pass": 2
+      }
+    },
+    {
+      "instance_id": "sphinx-doc__sphinx-8721",
+      "repo": "sphinx-doc/sphinx",
+      "base_commit": "82ef497a8c88f0f6e50d84520e7276bfbf65025d",
+      "version": "3.5",
+      "prompt_chars": 18214,
+      "estimated_prompt_tokens": 4554,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 4,
+        "added_lines": 4,
+        "removed_lines": 0,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "mwaskom__seaborn-3010",
+      "repo": "mwaskom/seaborn",
+      "base_commit": "0f5a013e2cf43562deec3b879458e59a73853813",
+      "version": "0.12",
+      "prompt_chars": 9332,
+      "estimated_prompt_tokens": 2333,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 5,
+        "added_lines": 4,
+        "removed_lines": 1,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "pytest-dev__pytest-9359",
+      "repo": "pytest-dev/pytest",
+      "base_commit": "e2ee3144ed6e241dea8d96215fcdca18b3892551",
+      "version": "7.0",
+      "prompt_chars": 17540,
+      "estimated_prompt_tokens": 4385,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 5,
+        "added_lines": 5,
+        "removed_lines": 0,
+        "fail_to_pass": 1
+      }
+    },
+    {
+      "instance_id": "scikit-learn__scikit-learn-13241",
+      "repo": "scikit-learn/scikit-learn",
+      "base_commit": "f8b108d0c6f2f82b2dc4e32a6793f9d9ac9cf2f4",
+      "version": "0.21",
+      "prompt_chars": 20275,
+      "estimated_prompt_tokens": 5069,
+      "selection_stats": {
+        "files": 1,
+        "changed_lines": 5,
+        "added_lines": 5,
+        "removed_lines": 0,
+        "fail_to_pass": 1
+      }
+    }
+  ]
+}

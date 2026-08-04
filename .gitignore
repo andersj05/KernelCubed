@@ -2,9 +2,14 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+.torch_extensions/
+.toolchains/
 build/
 dist/
 *.egg-info/
 results/*.json
 !results/.gitkeep
 !results/rtx4070-laptop-cu130.json
+!results/decode-prototype-rtx4070-cu130.json
+benchmarks/swebench-mini/tasks.jsonl
+results/swebench-mini/

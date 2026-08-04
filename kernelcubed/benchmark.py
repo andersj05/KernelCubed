@@ -231,10 +231,42 @@ class FlashInferBackend:
         ).unsqueeze(0)
 
 
+class KernelCubedCudaBackend:
+    name = "kernelcubed-cuda"
+
+    def __init__(self) -> None:
+        self._function: Callable[..., torch.Tensor] | None = None
+        self._error: str | None = None
+        try:
+            from .decode_attention import decode_attention, load_decode_extension
+
+            load_decode_extension()
+            self._function = decode_attention
+        except Exception as exc:
+            self._error = f"{type(exc).__name__}: {exc}"
+
+    def availability(self) -> tuple[bool, str | None]:
+        if self._function is None:
+            return False, self._error or "KernelCubed CUDA extension is unavailable"
+        return True, None
+
+    def run(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        phase: str,
+    ) -> torch.Tensor:
+        if phase != "decode":
+            raise ValueError("kernelcubed-cuda currently supports decode only")
+        assert self._function is not None
+        return self._function(q, k, v)
+
 BACKEND_FACTORIES: dict[str, Callable[[], Backend]] = {
     "sdpa": SdpaBackend,
     "flash-attn": FlashAttentionBackend,
     "flashinfer": FlashInferBackend,
+    "kernelcubed-cuda": KernelCubedCudaBackend,
 }
 
 
@@ -524,7 +556,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--backends",
         type=lambda value: [item.strip() for item in value.split(",")],
-        default=list(BACKEND_FACTORIES),
+        default=["sdpa", "flash-attn", "flashinfer"],
     )
     parser.add_argument(
         "--dtype",
