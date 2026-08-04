@@ -113,6 +113,8 @@ unmodified Qwen3-0.6B decode geometry:
   independent softmax states while sharing every K/V cache load
 - 128-token split partitions, capped at 64, to retain GPU occupancy
 
+- a reusable 0.51 MiB FP32 split workspace per CUDA stream, allocated once
+  outside the measured decode path
 The shared model environment contains CUDA 13.0 headers and a CUDA 13.3
 compiler. Install the pinned 13.0 compiler into an isolated, ignored project
 directory so the extension does not modify that environment:
@@ -148,6 +150,13 @@ paired loading measured 0.674 ms versus 0.701 ms for the initial custom
 prototype and 0.765 ms for FlashInfer. Laptop GPU scheduling and clocking still
 produce run-to-run variance, so compare saved raw percentile data as well.
 
+
+`results/decode-workspace-rtx4070-cu130.json` records the allocator-free
+checkpoint. After warmup, the custom backend reported about 0.0039 MiB of
+incremental allocation per invocation at every tested length, compared with
+0.0674 MiB at 2,048 tokens for the allocating split path. The persistent
+workspace itself occupies about 0.51 MiB per CUDA stream and can be released
+with `clear_decode_workspaces()`.
 ## SWE-bench Mini
 
 The SWE workflow uses a deterministic 12-task subset of the official

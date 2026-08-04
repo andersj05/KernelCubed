@@ -2,23 +2,30 @@
 
 #include <cmath>
 
+constexpr int kMaximumPartitions = 64;
+constexpr int kStateSize = 130;
+
 torch::Tensor qwen_decode_attention_cuda(
     const torch::Tensor& query,
     const torch::Tensor& key_cache,
     const torch::Tensor& value_cache,
+    const torch::Tensor& workspace,
     double scale);
 
 torch::Tensor qwen_decode_attention(
     const torch::Tensor& query,
     const torch::Tensor& key_cache,
     const torch::Tensor& value_cache,
+    const torch::Tensor& workspace,
     double scale) {
   TORCH_CHECK(query.is_cuda(), "query must be a CUDA tensor");
   TORCH_CHECK(key_cache.is_cuda(), "key_cache must be a CUDA tensor");
   TORCH_CHECK(value_cache.is_cuda(), "value_cache must be a CUDA tensor");
+  TORCH_CHECK(workspace.is_cuda(), "workspace must be a CUDA tensor");
   TORCH_CHECK(query.is_contiguous(), "query must be contiguous");
   TORCH_CHECK(key_cache.is_contiguous(), "key_cache must be contiguous");
   TORCH_CHECK(value_cache.is_contiguous(), "value_cache must be contiguous");
+  TORCH_CHECK(workspace.is_contiguous(), "workspace must be contiguous");
   TORCH_CHECK(
       query.dim() == 3, "query must have shape [1, query_heads, 128]");
   TORCH_CHECK(
@@ -57,10 +64,23 @@ torch::Tensor qwen_decode_attention(
           query.get_device() == value_cache.get_device(),
       "query, key cache, and value cache must be on the same GPU");
   TORCH_CHECK(
+      workspace.get_device() == query.get_device(),
+      "workspace must be on the same GPU as the inputs");
+  TORCH_CHECK(
+      workspace.scalar_type() == at::ScalarType::Float,
+      "workspace must use float32");
+  TORCH_CHECK(
+      workspace.dim() == 3 &&
+          workspace.size(0) >= kMaximumPartitions &&
+          workspace.size(1) == query.size(1) &&
+          workspace.size(2) == kStateSize,
+      "workspace must have shape [at least 64, query_heads, 130]");
+  TORCH_CHECK(
       std::isfinite(scale) && scale > 0.0,
       "scale must be finite and positive");
 
-  return qwen_decode_attention_cuda(query, key_cache, value_cache, scale);
+  return qwen_decode_attention_cuda(
+      query, key_cache, value_cache, workspace, scale);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, module) {
@@ -71,5 +91,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, module) {
       py::arg("query"),
       py::arg("key_cache"),
       py::arg("value_cache"),
+      py::arg("workspace"),
       py::arg("scale"));
 }

@@ -6,6 +6,7 @@ import os
 import sys
 from functools import lru_cache
 from pathlib import Path
+from threading import Lock
 from types import ModuleType
 
 import torch
@@ -15,6 +16,10 @@ from .benchmark import configure_cuda_home
 
 SOURCE_DIRECTORY = Path(__file__).parent / "csrc"
 LOCAL_CUDA_HOME = Path(__file__).parents[1] / ".toolchains/cuda130/nvidia/cu13"
+MAX_SPLIT_PARTITIONS = 64
+SPLIT_STATE_SIZE = 130
+_WORKSPACE_LOCK = Lock()
+_WORKSPACES: dict[tuple[int, int, int], torch.Tensor] = {}
 
 
 def validate_decode_inputs(
@@ -45,6 +50,35 @@ def validate_decode_inputs(
         raise ValueError("query, key_cache, and value_cache must share one GPU")
     if not all(tensor.is_contiguous() for tensor in tensors):
         raise ValueError("query, key_cache, and value_cache must be contiguous")
+
+
+def get_decode_workspace(query: torch.Tensor) -> torch.Tensor:
+    """Return the reusable split-KV state for the query's CUDA stream."""
+    if not query.is_cuda:
+        raise ValueError("workspace requires a CUDA query")
+    device_index = query.device.index
+    if device_index is None:
+        device_index = torch.cuda.current_device()
+    stream_id = int(torch.cuda.current_stream(query.device).cuda_stream)
+    key = (device_index, stream_id, query.shape[1])
+    with _WORKSPACE_LOCK:
+        workspace = _WORKSPACES.get(key)
+        if workspace is None:
+            workspace = torch.empty(
+                MAX_SPLIT_PARTITIONS,
+                query.shape[1],
+                SPLIT_STATE_SIZE,
+                device=query.device,
+                dtype=torch.float32,
+            )
+            _WORKSPACES[key] = workspace
+    return workspace
+
+
+def clear_decode_workspaces() -> None:
+    """Release cached workspaces, primarily for tests and memory management."""
+    with _WORKSPACE_LOCK:
+        _WORKSPACES.clear()
 
 
 @lru_cache(maxsize=1)
@@ -96,6 +130,7 @@ def decode_attention(
     validate_decode_inputs(query, key_cache, value_cache)
     extension = load_decode_extension()
     resolved_scale = scale if scale is not None else 128.0**-0.5
+    workspace = get_decode_workspace(query)
     return extension.decode_attention(
-        query, key_cache, value_cache, resolved_scale
+        query, key_cache, value_cache, workspace, resolved_scale
     )

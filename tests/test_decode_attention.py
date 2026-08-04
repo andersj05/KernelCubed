@@ -3,7 +3,12 @@ import unittest
 import torch
 import torch.nn.functional as F
 
-from kernelcubed.decode_attention import decode_attention, validate_decode_inputs
+from kernelcubed.decode_attention import (
+    clear_decode_workspaces,
+    decode_attention,
+    get_decode_workspace,
+    validate_decode_inputs,
+)
 
 
 class DecodeAttentionContractTests(unittest.TestCase):
@@ -24,6 +29,10 @@ class DecodeAttentionContractTests(unittest.TestCase):
         cache = torch.empty(8, 8, 128, dtype=torch.float16)
         with self.assertRaisesRegex(ValueError, "two query heads"):
             validate_decode_inputs(query, cache, cache)
+
+    def test_workspace_requires_cuda(self) -> None:
+        with self.assertRaisesRegex(ValueError, "CUDA"):
+            get_decode_workspace(torch.empty(1, 16, 128))
 
 
 @unittest.skipUnless(torch.cuda.is_available(), "CUDA is required")
@@ -79,9 +88,24 @@ class DecodeAttentionCudaTests(unittest.TestCase):
     def test_direct_float16_matches_sdpa(self) -> None:
         self.assert_matches_sdpa(37, torch.float16)
 
-
     def test_split_float16_matches_sdpa(self) -> None:
         self.assert_matches_sdpa(769, torch.float16)
+
+
+    def test_workspace_is_reused_on_same_stream(self) -> None:
+        clear_decode_workspaces()
+        query = torch.empty(
+            1,
+            16,
+            128,
+            device="cuda",
+            dtype=torch.bfloat16,
+        )
+        first = get_decode_workspace(query)
+        second = get_decode_workspace(query)
+        self.assertIs(first, second)
+        self.assertEqual(first.shape, (64, 16, 130))
+
 
 if __name__ == "__main__":
     unittest.main()

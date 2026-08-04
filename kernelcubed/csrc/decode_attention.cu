@@ -278,6 +278,7 @@ void launch_qwen_decode_attention(
     const torch::Tensor& key_cache,
     const torch::Tensor& value_cache,
     torch::Tensor& output,
+    const torch::Tensor& workspace,
     float scale) {
   const int sequence_length = static_cast<int>(key_cache.size(0));
   const int query_heads = static_cast<int>(query.size(1));
@@ -305,16 +306,13 @@ void launch_qwen_decode_attention(
     const int partitions = requested_partitions < kMaximumPartitions
         ? requested_partitions
         : kMaximumPartitions;
-    auto partials = torch::empty(
-        {partitions, query_heads, kHeadDim + 2},
-        query.options().dtype(torch::kFloat32));
     const dim3 split_grid(kv_head_grid.x, partitions);
     qwen_decode_attention_split_gqa2_kernel<scalar_t>
         <<<split_grid, block, 0, stream>>>(
             query.const_data_ptr<scalar_t>(),
             key_cache.const_data_ptr<scalar_t>(),
             value_cache.const_data_ptr<scalar_t>(),
-            partials.mutable_data_ptr<float>(),
+            workspace.mutable_data_ptr<float>(),
             sequence_length,
             query_heads,
             kv_heads,
@@ -322,7 +320,7 @@ void launch_qwen_decode_attention(
             scale);
     qwen_decode_attention_merge_kernel<scalar_t>
         <<<head_grid, block, 0, stream>>>(
-            partials.const_data_ptr<float>(),
+            workspace.const_data_ptr<float>(),
             output.mutable_data_ptr<scalar_t>(),
             query_heads,
             partitions);
@@ -336,14 +334,25 @@ torch::Tensor qwen_decode_attention_cuda(
     const torch::Tensor& query,
     const torch::Tensor& key_cache,
     const torch::Tensor& value_cache,
+    const torch::Tensor& workspace,
     double scale) {
   auto output = torch::empty_like(query);
   if (query.scalar_type() == at::ScalarType::Half) {
     launch_qwen_decode_attention<at::Half>(
-        query, key_cache, value_cache, output, static_cast<float>(scale));
+        query,
+        key_cache,
+        value_cache,
+        output,
+        workspace,
+        static_cast<float>(scale));
   } else {
     launch_qwen_decode_attention<at::BFloat16>(
-        query, key_cache, value_cache, output, static_cast<float>(scale));
+        query,
+        key_cache,
+        value_cache,
+        output,
+        workspace,
+        static_cast<float>(scale));
   }
   return output;
 }

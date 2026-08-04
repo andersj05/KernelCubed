@@ -12,5 +12,6 @@ results/*.json
 !results/rtx4070-laptop-cu130.json
 !results/decode-prototype-rtx4070-cu130.json
 !results/decode-gqa2-rtx4070-cu130.json
+!results/decode-workspace-rtx4070-cu130.json
 benchmarks/swebench-mini/tasks.jsonl
 results/swebench-mini/
