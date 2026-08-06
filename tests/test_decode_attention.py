@@ -41,6 +41,7 @@ class DecodeAttentionCudaTests(unittest.TestCase):
         self,
         sequence_length: int,
         dtype: torch.dtype = torch.bfloat16,
+        strided_cache: bool = False,
     ) -> None:
         generator = torch.Generator(device="cuda").manual_seed(sequence_length)
         query = torch.randn(
@@ -67,6 +68,11 @@ class DecodeAttentionCudaTests(unittest.TestCase):
             dtype=dtype,
             generator=generator,
         )
+        if strided_cache:
+            key = key.transpose(0, 1).contiguous().transpose(0, 1)
+            value = value.transpose(0, 1).contiguous().transpose(0, 1)
+            self.assertFalse(key.is_contiguous())
+
         expected = F.scaled_dot_product_attention(
             query.transpose(0, 1).unsqueeze(0),
             key.transpose(0, 1).unsqueeze(0),
@@ -82,15 +88,20 @@ class DecodeAttentionCudaTests(unittest.TestCase):
     def test_direct_bfloat16_matches_sdpa(self) -> None:
         self.assert_matches_sdpa(37)
 
-    def test_split_bfloat16_matches_sdpa(self) -> None:
-        self.assert_matches_sdpa(769)
-
     def test_direct_float16_matches_sdpa(self) -> None:
         self.assert_matches_sdpa(37, torch.float16)
+
+    def test_direct_strided_cache_matches_sdpa(self) -> None:
+        self.assert_matches_sdpa(37, strided_cache=True)
+
+    def test_split_bfloat16_matches_sdpa(self) -> None:
+        self.assert_matches_sdpa(769)
 
     def test_split_float16_matches_sdpa(self) -> None:
         self.assert_matches_sdpa(769, torch.float16)
 
+    def test_split_strided_cache_matches_sdpa(self) -> None:
+        self.assert_matches_sdpa(769, strided_cache=True)
 
     def test_workspace_is_reused_on_same_stream(self) -> None:
         clear_decode_workspaces()

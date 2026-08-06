@@ -48,8 +48,10 @@ def validate_decode_inputs(
         raise ValueError("query, key_cache, and value_cache must be CUDA tensors")
     if query.device != key_cache.device or query.device != value_cache.device:
         raise ValueError("query, key_cache, and value_cache must share one GPU")
-    if not all(tensor.is_contiguous() for tensor in tensors):
-        raise ValueError("query, key_cache, and value_cache must be contiguous")
+    if not query.is_contiguous():
+        raise ValueError("query must be contiguous")
+    if key_cache.stride(-1) != 1 or value_cache.stride(-1) != 1:
+        raise ValueError("the final K/V cache dimension must be contiguous")
 
 
 def get_decode_workspace(query: torch.Tensor) -> torch.Tensor:

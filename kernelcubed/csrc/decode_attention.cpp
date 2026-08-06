@@ -23,8 +23,6 @@ torch::Tensor qwen_decode_attention(
   TORCH_CHECK(value_cache.is_cuda(), "value_cache must be a CUDA tensor");
   TORCH_CHECK(workspace.is_cuda(), "workspace must be a CUDA tensor");
   TORCH_CHECK(query.is_contiguous(), "query must be contiguous");
-  TORCH_CHECK(key_cache.is_contiguous(), "key_cache must be contiguous");
-  TORCH_CHECK(value_cache.is_contiguous(), "value_cache must be contiguous");
   TORCH_CHECK(workspace.is_contiguous(), "workspace must be contiguous");
   TORCH_CHECK(
       query.dim() == 3, "query must have shape [1, query_heads, 128]");
@@ -34,6 +32,10 @@ torch::Tensor qwen_decode_attention(
   TORCH_CHECK(
       value_cache.dim() == 3,
       "value_cache must have shape [tokens, kv_heads, 128]");
+  TORCH_CHECK(
+      key_cache.stride(2) == 1 && value_cache.stride(2) == 1,
+      "the final K/V cache dimension must be contiguous");
+
   TORCH_CHECK(query.size(0) == 1, "only single-token decode is supported");
   TORCH_CHECK(query.size(2) == 128, "this prototype requires head_dim=128");
   TORCH_CHECK(

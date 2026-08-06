@@ -29,6 +29,10 @@ __global__ void qwen_decode_attention_warp_kernel(
     int sequence_length,
     int query_heads,
     int kv_heads,
+    int key_token_stride,
+    int key_head_stride,
+    int value_token_stride,
+    int value_head_stride,
     float scale) {
   constexpr int kWarpsPerBlock = 4;
   constexpr int kValuesPerLane = kHeadDim / kWarpSize;
@@ -53,13 +57,15 @@ __global__ void qwen_decode_attention_warp_kernel(
   float running_max = -FLT_MAX;
   float running_sum = 0.0f;
   for (int token = 0; token < sequence_length; ++token) {
-    const int cache_base = (token * kv_heads + kv_head) * kHeadDim;
+    const int key_base = token * key_token_stride + kv_head * key_head_stride;
+    const int value_base =
+        token * value_token_stride + kv_head * value_head_stride;
     float dot = 0.0f;
 #pragma unroll
     for (int index = 0; index < kValuesPerLane; ++index) {
       const int dimension = lane + index * kWarpSize;
       dot += query_values[index] *
-          static_cast<float>(key_cache[cache_base + dimension]);
+          static_cast<float>(key_cache[key_base + dimension]);
     }
     dot = warp_sum(dot);
 
@@ -82,7 +88,7 @@ __global__ void qwen_decode_attention_warp_kernel(
     for (int index = 0; index < kValuesPerLane; ++index) {
       const int dimension = lane + index * kWarpSize;
       accumulators[index] = accumulators[index] * old_factor +
-          static_cast<float>(value_cache[cache_base + dimension]) *
+          static_cast<float>(value_cache[value_base + dimension]) *
               new_factor;
     }
   }
@@ -106,6 +112,10 @@ __global__ void qwen_decode_attention_split_gqa2_kernel(
     int sequence_length,
     int query_heads,
     int kv_heads,
+    int key_token_stride,
+    int key_head_stride,
+    int value_token_stride,
+    int value_head_stride,
     int partitions,
     float scale) {
   constexpr int kWarpsPerBlock = 4;
@@ -144,14 +154,16 @@ __global__ void qwen_decode_attention_split_gqa2_kernel(
   float running_sum_0 = 0.0f;
   float running_sum_1 = 0.0f;
   for (int token = token_begin; token < token_end; ++token) {
-    const int cache_base = (token * kv_heads + kv_head) * kHeadDim;
+    const int key_base = token * key_token_stride + kv_head * key_head_stride;
+    const int value_base =
+        token * value_token_stride + kv_head * value_head_stride;
     float dot_0 = 0.0f;
     float dot_1 = 0.0f;
 #pragma unroll
     for (int index = 0; index < kValuesPerLane; ++index) {
       const int dimension = lane + index * kWarpSize;
       const float key_value =
-          static_cast<float>(key_cache[cache_base + dimension]);
+          static_cast<float>(key_cache[key_base + dimension]);
       dot_0 += query_values_0[index] * key_value;
       dot_1 += query_values_1[index] * key_value;
     }
@@ -189,7 +201,7 @@ __global__ void qwen_decode_attention_split_gqa2_kernel(
     for (int index = 0; index < kValuesPerLane; ++index) {
       const int dimension = lane + index * kWarpSize;
       const float value =
-          static_cast<float>(value_cache[cache_base + dimension]);
+          static_cast<float>(value_cache[value_base + dimension]);
       accumulators_0[index] =
           accumulators_0[index] * old_factor_0 + value * new_factor_0;
       accumulators_1[index] =
@@ -288,6 +300,10 @@ void launch_qwen_decode_attention(
   const dim3 head_grid((query_heads + 3) / 4);
   const dim3 kv_head_grid((kv_heads + 3) / 4);
   const dim3 block(kHeadDim);
+  const int key_token_stride = static_cast<int>(key_cache.stride(0));
+  const int key_head_stride = static_cast<int>(key_cache.stride(1));
+  const int value_token_stride = static_cast<int>(value_cache.stride(0));
+  const int value_head_stride = static_cast<int>(value_cache.stride(1));
   cudaStream_t stream = c10::cuda::getCurrentCUDAStream();
   if (sequence_length <= 256) {
     qwen_decode_attention_warp_kernel<scalar_t>
@@ -299,6 +315,10 @@ void launch_qwen_decode_attention(
             sequence_length,
             query_heads,
             kv_heads,
+            key_token_stride,
+            key_head_stride,
+            value_token_stride,
+            value_head_stride,
             scale);
   } else {
     const int requested_partitions =
@@ -316,6 +336,10 @@ void launch_qwen_decode_attention(
             sequence_length,
             query_heads,
             kv_heads,
+            key_token_stride,
+            key_head_stride,
+            value_token_stride,
+            value_head_stride,
             partitions,
             scale);
     qwen_decode_attention_merge_kernel<scalar_t>
