@@ -150,13 +150,59 @@ paired loading measured 0.674 ms versus 0.701 ms for the initial custom
 prototype and 0.765 ms for FlashInfer. Laptop GPU scheduling and clocking still
 produce run-to-run variance, so compare saved raw percentile data as well.
 
-
 `results/decode-workspace-rtx4070-cu130.json` records the allocator-free
 checkpoint. After warmup, the custom backend reported about 0.0039 MiB of
 incremental allocation per invocation at every tested length, compared with
 0.0674 MiB at 2,048 tokens for the allocating split path. The persistent
 workspace itself occupies about 0.51 MiB per CUDA stream and can be released
 with `clear_decode_workspaces()`.
+
+## Terminal chat with custom decode
+
+The terminal runner keeps Qwen3-0.6B loaded between turns. Transformers SDPA
+handles multi-token prefill, then eligible single-token, batch-one decode calls
+use `kernelcubed-cuda` directly on zero-copy views of Transformers' KV cache.
+
+Start an interactive session:
+
+```bash
+cd /home/base/KernelCubed
+/home/base/ai/qwen3-0.6b/.venv/bin/python -m kernelcubed.chat
+```
+
+The first custom-kernel use may JIT-compile the extension. Inside the chat:
+
+- `/reset` clears conversation history
+- `/stats` repeats the last throughput and attention-dispatch counters
+- `/exit` or `/quit` stops the process
+
+Run a one-shot smoke test:
+
+```bash
+/home/base/ai/qwen3-0.6b/.venv/bin/python -m kernelcubed.chat \
+  --prompt "Reply with exactly one word: hello" \
+  --max-new-tokens 4 \
+  --temperature 0
+```
+
+The validated smoke test returned `hello` and reported 28 SDPA prefill calls
+plus 28 custom decode calls, one per Qwen layer for each executed model step.
+Each response also reports output tokens per second. The first response includes
+runtime warmup; use later turns for steady-state measurements.
+
+Use the same terminal program with pure PyTorch SDPA for an end-to-end control:
+
+```bash
+/home/base/ai/qwen3-0.6b/.venv/bin/python -m kernelcubed.chat \
+  --attention-backend sdpa
+```
+
+Useful controls include `--max-context`, `--max-new-tokens`, `--dtype`,
+`--temperature`, `--top-p`, and `--thinking`. The custom path currently
+requires Qwen's head dimension 128, two query heads per KV head, batch size one,
+and no sliding-window or padded attention mask. Unsupported calls safely fall
+back to SDPA.
+
 ## SWE-bench Mini
 
 The SWE workflow uses a deterministic 12-task subset of the official
