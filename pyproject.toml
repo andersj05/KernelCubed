@@ -15,12 +15,14 @@ dependencies = ["torch>=2.1"]
 flash-attn = ["flash-attn"]
 flashinfer = ["flashinfer-python"]
 swebench = ["swebench"]
+serve = ["transformers>=4.51"]
 dev = ["pytest>=8"]
 
 [project.scripts]
 kernelcubed-bench = "kernelcubed.benchmark:main"
 kernelcubed-swe = "kernelcubed.swebench:main"
 
+kernelcubed-chat = "kernelcubed.chat:main"
 [tool.setuptools.packages.find]
 include = ["kernelcubed*"]
 
