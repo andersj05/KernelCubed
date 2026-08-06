@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import argparse
 import time
 from dataclasses import dataclass
@@ -109,6 +110,23 @@ def format_report(report: GenerationReport) -> str:
     )
 
 
+def normalize_prompt_ids(encoded: Any) -> list[int]:
+    """Normalize Transformers 4.x/5.x chat-template return types."""
+    if isinstance(encoded, Mapping):
+        encoded = encoded["input_ids"]
+    if isinstance(encoded, torch.Tensor):
+        encoded = encoded.tolist()
+    if encoded and isinstance(encoded[0], list):
+        if len(encoded) != 1:
+            raise ValueError("terminal chat supports one conversation at a time")
+        encoded = encoded[0]
+    if not isinstance(encoded, list) or not all(
+        isinstance(token, int) for token in encoded
+    ):
+        raise TypeError("chat template did not return integer token IDs")
+    return encoded
+
+
 def load_model_and_tokenizer(args: argparse.Namespace) -> tuple[Any, Any]:
     if args.attention_backend == BACKEND_NAME:
         register_transformers_backend()
@@ -140,12 +158,13 @@ def generate_reply(
     messages: list[dict[str, str]],
     args: argparse.Namespace,
 ) -> GenerationReport:
-    prompt_ids = tokenizer.apply_chat_template(
+    encoded_prompt = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
         add_generation_prompt=True,
         enable_thinking=args.thinking,
     )
+    prompt_ids = normalize_prompt_ids(encoded_prompt)
     prompt_length = len(prompt_ids)
     if prompt_length + args.max_new_tokens > args.max_context:
         raise ValueError(

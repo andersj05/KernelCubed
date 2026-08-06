@@ -7,6 +7,7 @@ from kernelcubed.chat import (
     build_parser,
     format_report,
     initial_messages,
+    normalize_prompt_ids,
     resolve_dtype,
     sampling_options,
 )
@@ -46,6 +47,18 @@ class ChatTests(unittest.TestCase):
     def test_dtype_resolution(self) -> None:
         self.assertIs(resolve_dtype("bfloat16"), torch.bfloat16)
         self.assertIs(resolve_dtype("float16"), torch.float16)
+
+    def test_normalizes_transformers_five_batch_encoding(self) -> None:
+        self.assertEqual(
+            normalize_prompt_ids(
+                {"input_ids": [151644, 872, 198]}
+            ),
+            [151644, 872, 198],
+        )
+
+    def test_normalizes_single_batched_tensor(self) -> None:
+        encoded = torch.tensor([[1, 2, 3]])
+        self.assertEqual(normalize_prompt_ids(encoded), [1, 2, 3])
 
     def test_report_formats_throughput_and_backend_counts(self) -> None:
         report = GenerationReport(
