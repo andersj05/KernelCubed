@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5f2" />
+    <title>KernelCubed Chat</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="KernelCubed home">
+          <span class="brand-mark" aria-hidden="true">K?</span>
+          <span>KernelCubed</span>
+        </a>
+        <div class="status-wrap">
+          <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+          <span id="status-label">Loading model</span>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="metrics" aria-label="Generation performance">
+          <div class="metrics-heading">
+            <div>
+              <p class="eyebrow">Performance</p>
+              <h1>Live metrics</h1>
+            </div>
+            <button class="icon-button" id="reset-button" type="button" title="New chat" aria-label="Start a new chat">
+              <span aria-hidden="true">?</span>
+            </button>
+          </div>
+
+          <div class="speed-card">
+            <span class="speed-value" id="speed-value">?</span>
+            <span class="speed-unit">tokens / second</span>
+            <div class="speed-line"><span id="speed-fill"></span></div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <span class="stat-label">Output</span>
+              <strong id="token-value">?</strong>
+              <span class="stat-unit">tokens</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Response</span>
+              <strong id="time-value">?</strong>
+              <span class="stat-unit">seconds</span>
+            </div>
+          </div>
+
+          <dl class="details">
+            <div><dt>Model</dt><dd id="model-value">Qwen3 0.6B</dd></div>
+            <div><dt>Backend</dt><dd id="backend-value">?</dd></div>
+            <div><dt>Device</dt><dd id="device-value">?</dd></div>
+            <div><dt>Custom decode</dt><dd id="custom-value">?</dd></div>
+            <div><dt>SDPA calls</dt><dd id="sdpa-value">?</dd></div>
+          </dl>
+        </aside>
+
+        <section class="chat-panel" aria-label="Chat with Qwen">
+          <div class="chat-header">
+            <div>
+              <p class="eyebrow">Local conversation</p>
+              <h2>Chat with Qwen</h2>
+            </div>
+            <span class="context-label" id="context-label">4096 context</span>
+          </div>
+
+          <div class="messages" id="messages" aria-live="polite">
+            <div class="empty-state" id="empty-state">
+              <div class="empty-mark" aria-hidden="true">K?</div>
+              <h3>Ready when you are.</h3>
+              <p>Chat with the model running on your machine and watch its throughput as it responds.</p>
+              <div class="suggestions" aria-label="Example prompts">
+                <button type="button">Explain this project simply</button>
+                <button type="button">Write a tiny Python function</button>
+                <button type="button">Give me three creative ideas</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="notice" id="notice" role="status" hidden></div>
+          <form class="composer" id="composer">
+            <label class="sr-only" for="message-input">Message Qwen</label>
+            <textarea id="message-input" rows="1" placeholder="Message Qwen?" autocomplete="off"></textarea>
+            <button class="send-button" id="send-button" type="submit" aria-label="Send message" disabled>
+              <span>Send</span><span aria-hidden="true">?</span>
+            </button>
+          </form>
+          <p class="hint">Enter to send ? Shift + Enter for a new line</p>
+        </section>
+      </section>
+    </main>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

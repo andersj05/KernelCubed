@@ -23,8 +23,9 @@ kernelcubed-bench = "kernelcubed.benchmark:main"
 kernelcubed-swe = "kernelcubed.swebench:main"
 
 kernelcubed-chat = "kernelcubed.chat:main"
+kernelcubed-web = "kernelcubed.web:main"
 [tool.setuptools.packages.find]
 include = ["kernelcubed*"]
 
 [tool.setuptools.package-data]
-kernelcubed = ["csrc/*.cpp", "csrc/*.cu"]
+kernelcubed = ["csrc/*.cpp", "csrc/*.cu", "web_assets/*"]

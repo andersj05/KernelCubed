@@ -203,6 +203,27 @@ requires Qwen's head dimension 128, two query heads per KV head, batch size one,
 and no sliding-window or padded attention mask. Unsupported calls safely fall
 back to SDPA.
 
+## Local chat UI
+
+Start the browser chat with one command:
+
+```bash
+./run-ui.sh
+```
+
+The server opens `http://127.0.0.1:7860` automatically, loads the same local
+Qwen checkpoint as the terminal chat, streams each response, and shows live
+output tokens per second. The completed response also reports output tokens,
+elapsed time, custom decode calls, and SDPA fallback calls. Conversation state
+stays in memory until the UI is reset or the process stops.
+
+All terminal-chat model controls work here too. For example, run a pure SDPA
+comparison without opening the browser automatically:
+
+```bash
+./run-ui.sh --attention-backend sdpa --no-open
+```
+
 ## SWE-bench Mini
 
 The SWE workflow uses a deterministic 12-task subset of the official
